@@ -8,6 +8,7 @@ Backend API para Pokemon SysBot Automation SaaS.
 - TypeScript
 - Supabase (Auth & Database)
 - JWT para autenticación
+- Swagger/OpenAPI para documentación
 
 ## Instalación
 
@@ -35,6 +36,19 @@ npm run dev
 ```
 
 El servidor correrá en `http://localhost:4000`
+
+## 📚 Documentación API (Swagger)
+
+La documentación interactiva de la API está disponible a través de Swagger UI:
+
+- **Swagger UI**: [http://localhost:4000/api-docs](http://localhost:4000/api-docs)
+- **OpenAPI Spec (JSON)**: [http://localhost:4000/api-docs.json](http://localhost:4000/api-docs.json)
+
+### Producción
+- **Swagger UI**: [https://pokemon-sys-bot-backend.vercel.app/api-docs](https://pokemon-sys-bot-backend.vercel.app/api-docs)
+- **OpenAPI Spec**: [https://pokemon-sys-bot-backend.vercel.app/api-docs.json](https://pokemon-sys-bot-backend.vercel.app/api-docs.json)
+
+La documentación se actualiza automáticamente a medida que se agregan nuevos endpoints.
 
 ## Endpoints Disponibles
 
@@ -73,6 +87,8 @@ Respuesta:
   "errors": []
 }
 ```
+
+> Para más detalles y ejemplos, consulta la [documentación de Swagger UI](http://localhost:4000/api-docs).
 
 ## Tests
 
