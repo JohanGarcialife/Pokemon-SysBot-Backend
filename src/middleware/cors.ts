@@ -1,7 +1,14 @@
 import cors from 'cors'
 import express from 'express'
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000']
+const defaultOrigins = [
+  'http://localhost:3000',
+  'https://pkdextrade.vercel.app',
+]
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : defaultOrigins
 
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
