@@ -29,6 +29,8 @@ export interface PokemonStats {
   speed: { iv: number; ev: number }
 }
 
+export type GameVersion = 'scarlet' | 'violet' | 'legends-za'
+
 export interface PokemonData {
   species: string
   level: number
@@ -39,6 +41,7 @@ export interface PokemonData {
   isShiny: boolean
   gender?: 'M' | 'F' | 'N'
   form?: string
+  gameVersion?: GameVersion
 }
 
 export interface ValidationError {
@@ -46,7 +49,18 @@ export interface ValidationError {
   message: string
 }
 
+export interface ValidationWarning {
+  field: string
+  message: string
+}
+
 export interface ValidationResult {
   valid: boolean
   errors: ValidationError[]
+  warnings: ValidationWarning[]
+  meta?: {
+    isHA?: boolean
+    genderRatio?: number
+    possibleAbilities?: string[]
+  }
 }

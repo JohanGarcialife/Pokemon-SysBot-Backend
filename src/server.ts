@@ -13,6 +13,12 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 4000
 
+// Global request logger — shows every incoming request before any middleware
+app.use((req, res, next) => {
+  console.log(`[server] ${req.method} ${req.path} | Origin: ${req.headers.origin ?? 'none'} | Auth: ${req.headers.authorization ? 'Bearer ***' : 'MISSING'}`)
+  next()
+})
+
 // Middleware
 app.use(corsMiddleware)
 app.use(express.json())

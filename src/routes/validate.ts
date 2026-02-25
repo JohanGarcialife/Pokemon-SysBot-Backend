@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express'
-import { validatePokemon } from '../lib/pokemon-validator'
+import { validatePokemonFull } from '../lib/pokemon-validator'
 import { PokemonData } from '../lib/validation-rules'
 
 const router = express.Router()
@@ -71,7 +71,7 @@ const router = express.Router()
  *             example:
  *               error: "Internal server error during validation"
  */
-router.post('/', (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   try {
     const pokemonData: PokemonData = req.body
 
@@ -81,7 +81,7 @@ router.post('/', (req: Request, res: Response) => {
       })
     }
 
-    const result = validatePokemon(pokemonData)
+    const result = await validatePokemonFull(pokemonData)
 
     return res.status(200).json(result)
   } catch (error) {

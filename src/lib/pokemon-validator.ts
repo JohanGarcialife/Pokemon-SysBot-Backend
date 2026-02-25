@@ -2,6 +2,7 @@ import {
   PokemonData,
   ValidationResult,
   ValidationError,
+  ValidationWarning,
   IV_MIN,
   IV_MAX,
   EV_MIN,
@@ -11,6 +12,7 @@ import {
   Stat,
   VALID_NATURES
 } from './validation-rules'
+import { validateShowdown } from './showdown-validator'
 
 /**
  * Validates Pokemon stats (IVs and EVs)
@@ -70,7 +72,6 @@ export function validateLevel(level: number): ValidationError[] {
 
 /**
  * Validates Pokemon moves (basic validation)
- * TODO: Implement move legality check against database
  */
 export function validateMoves(moves: string[]): ValidationError[] {
   const errors: ValidationError[] = []
@@ -118,12 +119,14 @@ export function validateNature(nature: string): ValidationError[] {
 }
 
 /**
- * Master Pokemon validator
+ * Quick sync validation — runs all non-async checks.
+ * Returns errors and an empty warnings array (sync path has no warnings).
  */
 export function validatePokemon(pokemon: PokemonData): ValidationResult {
   const errors: ValidationError[] = []
+  const warnings: ValidationWarning[] = []
 
-  // Validate all aspects
+  // Validate all sync aspects
   errors.push(...validateLevel(pokemon.level))
   errors.push(...validateStats(pokemon.stats))
   errors.push(...validateMoves(pokemon.moves))
@@ -131,28 +134,55 @@ export function validatePokemon(pokemon: PokemonData): ValidationResult {
 
   // Basic required fields
   if (!pokemon.species || pokemon.species.trim() === '') {
-    errors.push({
-      field: 'species',
-      message: 'Species is required'
-    })
+    errors.push({ field: 'species', message: 'Species is required' })
   }
 
   if (!pokemon.ability || pokemon.ability.trim() === '') {
-    errors.push({
-      field: 'ability',
-      message: 'Ability is required'
-    })
+    errors.push({ field: 'ability', message: 'Ability is required' })
   }
 
   if (!pokemon.nature || pokemon.nature.trim() === '') {
-    errors.push({
-      field: 'nature',
-      message: 'Nature is required'
-    })
+    errors.push({ field: 'nature', message: 'Nature is required' })
   }
 
-  return {
-    valid: errors.length === 0,
-    errors
+  return { valid: errors.length === 0, errors, warnings }
+}
+
+/**
+ * Full async validation — runs sync checks PLUS Showdown Core validation
+ * (move learnability, ability legality, gender rate) via PokeAPI.
+ *
+ * This is the preferred endpoint for order creation.
+ */
+export async function validatePokemonFull(pokemon: PokemonData): Promise<ValidationResult> {
+  // Run sync validation first
+  const syncResult = validatePokemon(pokemon)
+  const errors = [...syncResult.errors]
+  const warnings: ValidationWarning[] = [...syncResult.warnings]
+
+  // Only run Showdown validation if species and ability are present
+  if (pokemon.species && pokemon.ability) {
+    const showdownResult = await validateShowdown({
+      species: pokemon.species,
+      ability: pokemon.ability,
+      moves: pokemon.moves,
+      gender: pokemon.gender,
+    })
+
+    errors.push(...showdownResult.errors)
+    warnings.push(...showdownResult.warnings)
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings,
+      meta: {
+        isHA: showdownResult.meta.isHA,
+        genderRatio: showdownResult.meta.genderRatio,
+        possibleAbilities: showdownResult.meta.possibleAbilities,
+      },
+    }
   }
+
+  return { valid: errors.length === 0, errors, warnings }
 }

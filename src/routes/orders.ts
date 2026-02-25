@@ -46,7 +46,9 @@ const router = express.Router()
  */
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
+    console.log('[orders POST] Request reached handler. user:', req.user?.id)
     const { team, tradeCode, gameVersion }: CreateOrderRequest = req.body
+    console.log('[orders POST] team length:', team?.length, '| gameVersion:', gameVersion, '| tradeCode:', tradeCode)
 
     // ─── Validations ─────────────────────────────────────
     if (!team || !Array.isArray(team) || team.length === 0) {
@@ -61,8 +63,8 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'tradeCode is required' })
     }
 
-    if (!gameVersion || !['scarlet', 'violet'].includes(gameVersion)) {
-      return res.status(400).json({ error: 'gameVersion must be "scarlet" or "violet"' })
+    if (!gameVersion || !['scarlet', 'violet', 'legends-za'].includes(gameVersion)) {
+      return res.status(400).json({ error: 'gameVersion must be "scarlet", "violet", or "legends-za"' })
     }
 
     if (!req.user?.id) {
