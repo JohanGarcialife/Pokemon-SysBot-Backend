@@ -71,11 +71,30 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
   res.status(500).json({ error: 'Internal server error' })
 })
 
+import { startTcpServer } from './sysbot/tcpServer'
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Backend server running on http://localhost:${PORT}`)
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
   console.log(`📚 API Docs: http://localhost:${PORT}/api-docs`)
+})
+
+// Start TCP Server for SysBot Connections
+const TCP_PORT = Number(process.env.TCP_PORT) || 5000
+const tcpServer = startTcpServer(TCP_PORT)
+
+// Graceful shutdown during development (tsx watch / nodemon)
+process.once('SIGUSR2', () => {
+  tcpServer.close(() => {
+    process.kill(process.pid, 'SIGUSR2')
+  })
+})
+
+process.on('SIGINT', () => {
+  tcpServer.close(() => {
+    process.exit(0)
+  })
 })
 
 export default app
