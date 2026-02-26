@@ -1,9 +1,10 @@
-import express, { Response } from 'express'
+import { Router, Request, Response } from 'express'
 import { getSupabase } from '../lib/supabase'
+import { addOrderToQueue } from '../queue/OrderQueue'
 import { CreateOrderRequest, CreateOrderResponse } from '../lib/order-types'
 import { AuthRequest } from '../middleware/auth'
 
-const router = express.Router()
+const router = Router()
 
 /**
  * @swagger
@@ -94,6 +95,13 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       tradeCode: data.trade_code,
       status: 'pending',
       createdAt: data.created_at,
+    }
+
+    // ====== ENQUEUE THE ORDER (PSAS-13) ======
+    try {
+      await addOrderToQueue(data.id, gameVersion, team)
+    } catch (queueErr) {
+      console.error('[Orders] Failed to push order to Redis queue:', queueErr)
     }
 
     return res.status(201).json(response)

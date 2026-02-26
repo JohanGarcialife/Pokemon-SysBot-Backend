@@ -84,6 +84,9 @@ app.listen(PORT, () => {
 const TCP_PORT = Number(process.env.TCP_PORT) || 5000
 const tcpServer = startTcpServer(TCP_PORT)
 
+// Start Queue Worker
+import './queue/OrderWorker'
+
 // Graceful shutdown during development (tsx watch / nodemon)
 process.once('SIGUSR2', () => {
   tcpServer.close(() => {
