@@ -2,6 +2,10 @@ import { Worker, Job } from 'bullmq'
 import { connection } from './redis'
 import { ORDER_QUEUE_NAME } from './OrderQueue'
 import { connectionManager } from '../sysbot/ConnectionManager'
+import { deliverPk9File } from '../sysbot/SftpDelivery'
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
 
 /**
  * Worker that processes incoming web orders.
@@ -19,47 +23,53 @@ export const orderWorker = new Worker(
 
     if (!bot) {
       console.log(`[OrderWorker] No idle bot found for ${gameVersion}. Re-queueing order ${orderId}...`)
-      // Throwing an error tells BullMQ the job failed and must be retried later
       throw new Error(`No available bot for ${gameVersion}`)
     }
 
-    // 2. We found a bot! Claim it so other jobs don't take it concurrently
+    // 2. Claim the bot
     bot.status = 'TRADING'
 
     try {
-      // 3. (PSAS-14) Here we will send the actual trade command to the bot
-      console.log(`[OrderWorker] Assigned order ${orderId} to bot ${bot.id}`)
-      
-      // Simulate trade taking some time for now (will be replaced by actual bot interaction)
-      // await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // For now, immediately free the bot back to IDLE
+      console.log(`[OrderWorker] Bot ${bot.id} assigned to order ${orderId}`)
+
+      // 3. Generate the temp .pk9 file 
+      // NOTE (PSAS-15): This will use pkhex-server or local generation to build a real .pk9 from `payload`
+      // For now we write a stub file so the distribution pipeline can be tested end-to-end
+      const filename = `order_${orderId}.pk9`
+      const tempPath = path.join(os.tmpdir(), filename)
+      fs.writeFileSync(tempPath, JSON.stringify(payload, null, 2)) // stub for now
+
+      // 4. Deliver to the SysBot distribute folder via SFTP
+      await deliverPk9File(tempPath, filename)
+
+      // 5. Clean up temp file
+      fs.unlinkSync(tempPath)
+
+      // 6. Free the bot after the trade window (SysBot will read and clear the file)
       setTimeout(() => {
         if (bot.status === 'TRADING') {
           bot.status = 'IDLE'
-          console.log(`[OrderWorker] Bot ${bot.id} returned to IDLE state`)
+          console.log(`[OrderWorker] Bot ${bot.id} returned to IDLE`)
         }
-      }, 5000)
+      }, 30000) // 30 seconds – enough time for SysBot to pick up and trade
 
-      return { success: true, botId: bot.id }
+      return { success: true, botId: bot.id, filename }
     } catch (error) {
-      // If something blows up, free the bot
       bot.status = 'IDLE'
       throw error
     }
   },
   {
     connection,
-    // Concurrency mapping: how many jobs can be processed at once.
-    // Since bots are hardware-limited, concurrency isn't exactly horizontal per worker unless we have many bots.
-    concurrency: 5, 
+    concurrency: 5,
   }
 )
 
 orderWorker.on('completed', (job) => {
-  console.log(`[OrderWorker] Order ${job.id} officially completed and delivered.`)
+  console.log(`[OrderWorker] ✅ Order ${job.id} was delivered successfully.`)
 })
 
 orderWorker.on('failed', (job, err) => {
-  console.log(`[OrderWorker] Order ${job?.id} failed processing (will retry): ${err.message}`)
+  console.log(`[OrderWorker] ❌ Order ${job?.id} failed (will retry): ${err.message}`)
 })
+
