@@ -3,6 +3,8 @@ import { connection } from './redis'
 import { ORDER_QUEUE_NAME } from './OrderQueue'
 import { connectionManager } from '../sysbot/ConnectionManager'
 import { deliverPk9File } from '../sysbot/SftpDelivery'
+import { convertToPk9, savePk9ToTemp } from '../lib/pkhexClient'
+import { PokemonBuildPayload } from '../lib/order-types'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -32,18 +34,33 @@ export const orderWorker = new Worker(
     try {
       console.log(`[OrderWorker] Bot ${bot.id} assigned to order ${orderId}`)
 
-      // 3. Generate the temp .pk9 file 
-      // NOTE (PSAS-15): This will use pkhex-server or local generation to build a real .pk9 from `payload`
-      // For now we write a stub file so the distribution pipeline can be tested end-to-end
-      const filename = `order_${orderId}.pk9`
-      const tempPath = path.join(os.tmpdir(), filename)
-      fs.writeFileSync(tempPath, JSON.stringify(payload, null, 2)) // stub for now
+      // 3. Generate and upload .pk9 files for the entire team
+      const team = payload as PokemonBuildPayload[]
+      const uploadedFiles: string[] = []
 
-      // 4. Deliver to the SysBot distribute folder via SFTP
-      await deliverPk9File(tempPath, filename)
-
-      // 5. Clean up temp file
-      fs.unlinkSync(tempPath)
+      for (let i = 0; i < team.length; i++) {
+        const pokemon = team[i]
+        try {
+          // Convert payload to .pk9 binary via C# sidecar
+          const pk9Buffer = await convertToPk9(pokemon)
+          
+          const filename = `order_${orderId}_slot${i + 1}_${pokemon.species}.pk9`
+          const tempPath = path.join(os.tmpdir(), filename)
+          
+          // Save temp file
+          fs.writeFileSync(tempPath, pk9Buffer)
+          
+          // Upload to SysBot
+          await deliverPk9File(tempPath, filename)
+          uploadedFiles.push(filename)
+          
+          // Clean up temp file
+          fs.unlinkSync(tempPath)
+        } catch (err) {
+          console.error(`[OrderWorker] Failed to process ${pokemon.species} in order ${orderId}:`, err)
+          throw err // BullMQ will retry or fail the job
+        }
+      }
 
       // 6. Free the bot after the trade window (SysBot will read and clear the file)
       setTimeout(() => {
@@ -53,7 +70,7 @@ export const orderWorker = new Worker(
         }
       }, 30000) // 30 seconds – enough time for SysBot to pick up and trade
 
-      return { success: true, botId: bot.id, filename }
+      return { success: true, botId: bot.id, uploadedFiles }
     } catch (error) {
       bot.status = 'IDLE'
       throw error

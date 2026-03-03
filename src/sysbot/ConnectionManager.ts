@@ -38,6 +38,13 @@ class ConnectionManager {
    */
   public getAvailableBot(gameVersion: string): BotSession | undefined {
     for (const session of this.bots.values()) {
+      // Eagerly clean up dead sessions that haven't been reaped by the interval yet
+      if (!session.isAlive()) {
+        session.disconnect()
+        this.bots.delete(session.id)
+        continue
+      }
+
       if (session.gameVersion === gameVersion && session.status === 'IDLE') {
         return session
       }

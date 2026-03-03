@@ -15,6 +15,7 @@ const SFTP_CONFIG = {
   privateKey: fs.readFileSync(
     process.env.BOT_SSH_KEY_PATH || `${process.env.HOME}/.ssh/pkdex_sysbot`
   ),
+  readyTimeout: 10000, // Abort connection attempt after 10 seconds
 }
 
 const REMOTE_DISTRIBUTE_PATH = process.env.BOT_DISTRIBUTE_PATH || 
@@ -39,6 +40,13 @@ export async function deliverPk9File(localFilePath: string, filename: string): P
     
     console.log(`[SftpDelivery] ✅ ${filename} delivered successfully to distribute folder!`)
   } finally {
-    await sftp.end()
+    try {
+      await sftp.end()
+    } catch (e: any) {
+      // Ignore ECONNRESET on close, as the file was already uploaded successfully
+      if (e.code !== 'ECONNRESET') {
+        console.error(`[SftpDelivery] Error closing connection:`, e.message)
+      }
+    }
   }
 }

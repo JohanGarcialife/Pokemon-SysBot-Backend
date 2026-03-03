@@ -7,9 +7,11 @@ export class BotSession {
   public status: BotStatus = 'IDLE'
   public gameVersion: string = 'unknown'
   public connectedAt: Date
+  public lastSeen: number
   
   private socket: Socket
   private dataBuffer: string = ''
+  private heartbeatInterval?: NodeJS.Timeout
 
   // Custom events
   public onDisconnect?: (id: string) => void
@@ -20,20 +22,37 @@ export class BotSession {
     this.id = uuidv4()
     this.socket = socket
     this.connectedAt = new Date()
+    this.lastSeen = Date.now()
 
     this.setupListeners()
+    this.startHeartbeat()
+  }
+
+  private startHeartbeat() {
+    // Check every 30 seconds if the bot hasn't sent data in over 2 minutes (120,000 ms)
+    this.heartbeatInterval = setInterval(() => {
+      if (Date.now() - this.lastSeen > 120_000) {
+        console.warn(`[BotSession ${this.id}] Ping timeout exceeded. Forcing disconnect...`)
+        this.status = 'DISCONNECTED'
+        this.socket.destroy() // Force close
+        if (this.onDisconnect) this.onDisconnect(this.id)
+        if (this.heartbeatInterval) clearInterval(this.heartbeatInterval)
+      }
+    }, 30_000)
   }
 
   private setupListeners() {
     this.socket.setEncoding('utf8')
 
     this.socket.on('data', (data: Buffer | string) => {
+      this.lastSeen = Date.now()
       this.dataBuffer += data.toString()
       this.processBuffer()
     })
 
     this.socket.on('close', () => {
       this.status = 'DISCONNECTED'
+      if (this.heartbeatInterval) clearInterval(this.heartbeatInterval)
       if (this.onDisconnect) this.onDisconnect(this.id)
     })
 
@@ -95,9 +114,18 @@ export class BotSession {
   }
 
   /**
+   * Check if the bot is still theoretically responsive.
+   */
+  public isAlive(): boolean {
+    return this.status !== 'DISCONNECTED' && !this.socket.destroyed && (Date.now() - this.lastSeen <= 120_000)
+  }
+
+  /**
    * Gracefully kick the bot.
    */
   public disconnect() {
     this.socket.end()
+    if (this.heartbeatInterval) clearInterval(this.heartbeatInterval)
+    this.status = 'DISCONNECTED'
   }
 }

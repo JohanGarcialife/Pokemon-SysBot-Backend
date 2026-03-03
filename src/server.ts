@@ -81,7 +81,7 @@ app.listen(PORT, () => {
 })
 
 // Start TCP Server for SysBot Connections
-const TCP_PORT = Number(process.env.TCP_PORT) || 5000
+const TCP_PORT = Number(process.env.TCP_PORT) || 5005
 const tcpServer = startTcpServer(TCP_PORT)
 
 // Start Queue Worker
