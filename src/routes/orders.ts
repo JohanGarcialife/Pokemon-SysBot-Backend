@@ -99,7 +99,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
     // ====== ENQUEUE THE ORDER (PSAS-13) ======
     try {
-      await addOrderToQueue(data.id, gameVersion, team)
+      await addOrderToQueue(data.id, gameVersion, team, tradeCode)
     } catch (queueErr) {
       console.error('[Orders] Failed to push order to Redis queue:', queueErr)
     }

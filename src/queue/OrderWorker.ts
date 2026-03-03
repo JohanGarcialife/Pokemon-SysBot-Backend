@@ -16,9 +16,12 @@ import path from 'path'
 export const orderWorker = new Worker(
   ORDER_QUEUE_NAME,
   async (job: Job) => {
-    const { orderId, gameVersion, payload } = job.data
+    const { orderId, gameVersion, payload, tradeCode } = job.data
 
-    console.log(`[OrderWorker] Processing order ${orderId} for ${gameVersion}`)
+    // Strip spaces from trade code for the filename, e.g. "9432 0374" → "94320374"
+    const codeDigits = (tradeCode || '00000000').replace(/\s/g, '')
+
+    console.log(`[OrderWorker] Processing order ${orderId} for ${gameVersion} | Trade Code: ${codeDigits}`)
 
     // 1. Look for an available SysBot for this game version
     const bot = connectionManager.getAvailableBot(gameVersion)
@@ -44,7 +47,9 @@ export const orderWorker = new Worker(
           // Convert payload to .pk9 binary via C# sidecar
           const pk9Buffer = await convertToPk9(pokemon)
           
-          const filename = `order_${orderId}_slot${i + 1}_${pokemon.species}.pk9`
+          // Filename format: {tradeCode}_{species}.pk9
+          // SysBot.NET reads the trade code from the filename automatically.
+          const filename = `${codeDigits}_${pokemon.species}.pk9`
           const tempPath = path.join(os.tmpdir(), filename)
           
           // Save temp file

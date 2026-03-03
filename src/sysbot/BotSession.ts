@@ -82,6 +82,12 @@ export class BotSession {
    * Basic protocol router.
    */
   private handleLine(line: string) {
+    // Heartbeat from BotConnector — just update lastSeen silently
+    if (line === 'PING') {
+      this.lastSeen = Date.now()
+      return
+    }
+
     // Example basic handshake: "HELLO legends-za" or "HELLO scarlet"
     if (line.startsWith('HELLO ')) {
       const game = line.split(' ')[1]
