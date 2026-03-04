@@ -8,13 +8,25 @@ import fs from 'fs'
  * on the client's Windows machine via Tailscale + SSH key auth.
  */
 
+// Read SSH key: prefer env var (base64-encoded) for cloud deploys, fallback to file for local dev
+function loadPrivateKey(): Buffer | string {
+  if (process.env.SFTP_PRIVATE_KEY) {
+    return Buffer.from(process.env.SFTP_PRIVATE_KEY, 'base64')
+  }
+  const keyPath = process.env.BOT_SSH_KEY_PATH || `${process.env.HOME}/.ssh/pkdex_sysbot`
+  try {
+    return fs.readFileSync(keyPath)
+  } catch (e) {
+    console.warn(`[SftpDelivery] SSH key not found at ${keyPath}. Set SFTP_PRIVATE_KEY env var for production.`)
+    return ''
+  }
+}
+
 const SFTP_CONFIG = {
   host: process.env.BOT_SFTP_HOST || '100.90.194.72',
   port: 22,
   username: process.env.BOT_SFTP_USER || 'pkdexssh',
-  privateKey: fs.readFileSync(
-    process.env.BOT_SSH_KEY_PATH || `${process.env.HOME}/.ssh/pkdex_sysbot`
-  ),
+  privateKey: loadPrivateKey(),
   readyTimeout: 10000, // Abort connection attempt after 10 seconds
 }
 
