@@ -100,4 +100,12 @@ process.on('SIGINT', () => {
   })
 })
 
+// Railway sends SIGTERM to stop containers — close TCP socket cleanly so port 5005 is freed
+process.on('SIGTERM', () => {
+  console.log('[server] SIGTERM received — closing TCP server and exiting...')
+  tcpServer.close(() => {
+    process.exit(0)
+  })
+})
+
 export default app
