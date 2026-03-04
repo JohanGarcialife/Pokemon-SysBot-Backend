@@ -23,8 +23,9 @@ export function startTcpServer(port: number) {
     }
   })
 
-  server.listen(port, () => {
-    console.log(`🤖 SysBot TCP Distribution Server listening on port ${port}`)
+  // Bind to 0.0.0.0 so Tailscale connections from the client's Windows PC can reach us
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`🤖 SysBot TCP Distribution Server listening on 0.0.0.0:${port}`)
   })
 
   return server

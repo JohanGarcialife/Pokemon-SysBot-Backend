@@ -44,8 +44,8 @@ export const orderWorker = new Worker(
       for (let i = 0; i < team.length; i++) {
         const pokemon = team[i]
         try {
-          // Convert payload to .pk9 binary via C# sidecar
-          const pk9Buffer = await convertToPk9(pokemon)
+          // Convert payload to correct pk file format for the game version
+          const pk9Buffer = await convertToPk9(pokemon, gameVersion)
           
           // Filename format: {species}_{shortOrderId}.pk9
           // SysBot.NET reads the file in order from the distribute folder.
