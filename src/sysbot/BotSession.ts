@@ -6,6 +6,7 @@ export class BotSession {
   public readonly id: string
   public status: BotStatus = 'IDLE'
   public gameVersion: string = 'unknown'
+  public tradeCode: string = '00000000'  // Fixed trade code configured in SysBot.NET Hub
   public connectedAt: Date
   public lastSeen: number
   
@@ -88,12 +89,15 @@ export class BotSession {
       return
     }
 
-    // Example basic handshake: "HELLO legends-za" or "HELLO scarlet"
+    // Handshake: "HELLO scarlet" or "HELLO scarlet 94320374"
     if (line.startsWith('HELLO ')) {
-      const game = line.split(' ')[1]
+      const parts = line.split(' ')
+      const game = parts[1]
+      const code = parts[2]  // Optional trade code from SysBot.NET config
       if (game) {
         this.gameVersion = game
-        console.log(`[BotSession ${this.id}] Authenticated as ${game}`)
+        if (code) this.tradeCode = code
+        console.log(`[BotSession ${this.id}] Authenticated as ${game} | Trade Code: ${this.tradeCode}`)
         if (this.onAuth) this.onAuth(this.id, game)
         this.send('OK HANDSHAKE_ACCEPTED')
       }
