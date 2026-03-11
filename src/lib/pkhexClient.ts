@@ -11,11 +11,7 @@ import fs from 'fs'
 
 const PKHEX_SIDECAR_URL = process.env.PKHEX_SIDECAR_URL || 'http://100.90.194.72:5001'
 
-/**
- * Converts a single Pokémon payload to a binary buffer (.pk9 for SV, .pk0 for LZA).
- * Calls the PKHeX sidecar via HTTP.
- */
-export async function convertToPk9(pokemon: PokemonBuildPayload, gameVersion: string = 'scarlet'): Promise<Buffer> {
+export async function convertToPk9(pokemon: PokemonBuildPayload, gameVersion: string = 'scarlet'): Promise<{ buffer: Buffer, filename: string }> {
   const showdownText = buildShowdownText(pokemon)
   
   console.log(`[PKHeX] Converting ${pokemon.species} to pk file (${gameVersion})...`)
@@ -27,7 +23,7 @@ export async function convertToPk9(pokemon: PokemonBuildPayload, gameVersion: st
       'X-Game-Version': gameVersion,  // Tells sidecar to use SAV9ZA vs SAV9SV
     },
     responseType: 'arraybuffer',
-    timeout: 10000,
+    timeout: 30000,
   })
 
   if (response.status !== 200) {
@@ -35,8 +31,11 @@ export async function convertToPk9(pokemon: PokemonBuildPayload, gameVersion: st
   }
 
   const buffer = Buffer.from(response.data)
-  console.log(`[PKHeX] ✅ ${pokemon.species} converted → ${buffer.length} bytes`)
-  return buffer
+  // Extract filename from header (sent by C# sidecar), fallback to .pk9
+  const sidecarFilename = response.headers['x-filename'] || `${pokemon.species}.pk9`
+  
+  console.log(`[PKHeX] ✅ ${pokemon.species} converted → ${buffer.length} bytes, file: ${sidecarFilename}`)
+  return { buffer, filename: sidecarFilename }
 }
 
 /**

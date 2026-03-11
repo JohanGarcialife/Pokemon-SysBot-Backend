@@ -87,6 +87,16 @@ const tcpServer = startTcpServer(TCP_PORT)
 // Start Queue Worker
 import './queue/OrderWorker'
 
+// Iniciar Discord Bridge (Cuenta Humana Infiltrada)
+import { discordBridge } from './sysbot/DiscordBridge'
+const discordToken = process.env.DISCORD_TOKEN
+const discordChannelId = process.env.DISCORD_CHANNEL_ID
+if (discordToken && discordChannelId) {
+  discordBridge.connect(discordToken, discordChannelId)
+} else {
+  console.warn('⚠️  Discord Bridge no se ha iniciado: faltan DISCORD_TOKEN o DISCORD_CHANNEL_ID en .env')
+}
+
 // Graceful shutdown during development (tsx watch / nodemon)
 process.once('SIGUSR2', () => {
   tcpServer.close(() => {

@@ -18,12 +18,19 @@ import { PokemonBuildPayload } from './order-types'
  * - Quick Attack
  * - Thunder
  */
-export function buildShowdownText(pokemon: PokemonBuildPayload): string {
+const LEGENDS_ZA_GAME = 'legends-za'
+
+export function buildShowdownText(pokemon: PokemonBuildPayload, gameVersion?: string): string {
   const lines: string[] = []
+  const isLegendsZA = gameVersion === LEGENDS_ZA_GAME
 
   // ── Header: Species @ HeldItem ──────────────────────────────────────
-  const speciesLine = pokemon.heldItem
-    ? `${capitalize(pokemon.species)} @ ${capitalize(pokemon.heldItem)}`
+  // Skip held item if it's null, undefined, empty, or the literal string "None"
+  const hasHeldItem = pokemon.heldItem &&
+    pokemon.heldItem.trim() !== '' &&
+    pokemon.heldItem.toLowerCase() !== 'none'
+  const speciesLine = hasHeldItem
+    ? `${capitalize(pokemon.species)} @ ${capitalize(pokemon.heldItem!)}`
     : capitalize(pokemon.species)
   lines.push(speciesLine)
 
@@ -44,14 +51,16 @@ export function buildShowdownText(pokemon: PokemonBuildPayload): string {
   if (pokemon.gender === 'M') lines.push('Gender: Male')
   else if (pokemon.gender === 'F') lines.push('Gender: Female')
 
-  // ── Tera Type ────────────────────────────────────────────────────────
-  if (pokemon.teraType) {
+  // ── Tera Type (not applicable for Legends ZA) ────────────────────────
+  if (pokemon.teraType && !isLegendsZA) {
     lines.push(`Tera Type: ${capitalize(pokemon.teraType)}`)
   }
 
-  // ── EVs ──────────────────────────────────────────────────────────────
-  const evParts = buildStatLine(pokemon.evs)
-  if (evParts) lines.push(`EVs: ${evParts}`)
+  // ── EVs (not applicable for Legends ZA) ──────────────────────────────
+  if (!isLegendsZA) {
+    const evParts = buildStatLine(pokemon.evs)
+    if (evParts) lines.push(`EVs: ${evParts}`)
+  }
 
   // ── Nature ───────────────────────────────────────────────────────────
   if (pokemon.nature) {
@@ -73,8 +82,8 @@ export function buildShowdownText(pokemon: PokemonBuildPayload): string {
 /**
  * Converts an entire team payload to a combined Showdown string (multi-set).
  */
-export function teamToShowdownText(team: PokemonBuildPayload[]): string {
-  return team.map(buildShowdownText).join('\n\n')
+export function teamToShowdownText(team: PokemonBuildPayload[], gameVersion?: string): string {
+  return team.map((p) => buildShowdownText(p, gameVersion)).join('\n\n')
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
