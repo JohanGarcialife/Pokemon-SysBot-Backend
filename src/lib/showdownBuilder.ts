@@ -20,6 +20,9 @@ import { PokemonBuildPayload } from './order-types'
  */
 const LEGENDS_ZA_GAME = 'legends-za'
 
+// Origins that indicate a gift with Shiny Lock (PokéBall locked, fixed level, etc.)
+const GIFT_ORIGINS = ['In-Game Gift', 'Starter', 'Event']
+
 export function buildShowdownText(pokemon: PokemonBuildPayload, gameVersion?: string): string {
   const lines: string[] = []
   const isLegendsZA = gameVersion === LEGENDS_ZA_GAME
@@ -45,6 +48,11 @@ export function buildShowdownText(pokemon: PokemonBuildPayload, gameVersion?: st
   // ── Shiny ────────────────────────────────────────────────────────────
   if (pokemon.shiny) {
     lines.push('Shiny: Yes')
+  }
+
+  // ── Alpha (Legends ZA only) ───────────────────────────────────────────
+  if (pokemon.alpha && isLegendsZA) {
+    lines.push('Alpha: Yes')
   }
 
   // ── Gender ───────────────────────────────────────────────────────────
@@ -78,6 +86,7 @@ export function buildShowdownText(pokemon: PokemonBuildPayload, gameVersion?: st
 
   return lines.join('\n')
 }
+
 
 /**
  * Converts an entire team payload to a combined Showdown string (multi-set).

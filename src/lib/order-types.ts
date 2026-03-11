@@ -18,6 +18,7 @@ export interface PokemonBuildPayload {
   nature: string
   ability: string
   shiny: boolean
+  alpha: boolean
   gender: string
   heldItem: string
   teraType: string
@@ -31,7 +32,7 @@ export interface PokemonBuildPayload {
 export interface CreateOrderRequest {
   team: PokemonBuildPayload[]
   tradeCode: string
-  gameVersion: 'scarlet' | 'violet'
+  gameVersion: 'scarlet' | 'violet' | 'legends-za'
 }
 
 export interface CreateOrderResponse {
