@@ -80,8 +80,10 @@ export function buildShowdownText(pokemon: PokemonBuildPayload, gameVersion?: st
   if (ivParts) lines.push(`IVs: ${ivParts}`)
 
   // ── Moves ─────────────────────────────────────────────────────────────
-  for (const move of pokemon.moves.filter(Boolean)) {
-    lines.push(`- ${capitalize(move)}`)
+  if (!isLegendsZA) {
+    for (const move of pokemon.moves.filter(Boolean)) {
+      lines.push(`- ${capitalize(move)}`)
+    }
   }
 
   return lines.join('\n')
