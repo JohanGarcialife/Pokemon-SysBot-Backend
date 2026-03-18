@@ -126,11 +126,14 @@ export function buildShowdownText(pokemon: PokemonBuildPayload, gameVersion?: st
   if (ivParts) lines.push(`IVs: ${ivParts}`)
 
   // ── Moves ────────────────────────────────────────────────────────────
-  // Include moves for ALL games — ALM uses them to resolve the legality check.
-  // For Legends ZA, ALM will auto-pick legal moves if the supplied ones are invalid.
-  const validMoves = pokemon.moves.filter(Boolean)
-  for (const move of validMoves) {
-    lines.push(`- ${capitalize(move)}`)
+  // For Legends ZA: DO NOT send moves. ALM auto-assigns the legal learnset for ZA.
+  // Moves from PokeAPI reflect the SV learnset — many don't exist in ZA and ALM rejects them.
+  // For Scarlet/Violet: send moves as provided by the user.
+  if (!isLegendsZA) {
+    const validMoves = pokemon.moves.filter(Boolean)
+    for (const move of validMoves) {
+      lines.push(`- ${capitalize(move)}`)
+    }
   }
 
   return lines.join('\n')
