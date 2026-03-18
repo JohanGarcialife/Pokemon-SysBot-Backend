@@ -56,6 +56,18 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
+// DiscordBridge status endpoint — for debugging
+app.get('/health/discord', (req: express.Request, res: express.Response) => {
+  const { discordBridge } = require('./sysbot/DiscordBridge')
+  const status = discordBridge.getStatus()
+  res.json({
+    status: status.connected ? 'connected' : 'disconnected',
+    userTag: status.userTag,
+    channelId: status.channelId,
+    timestamp: new Date().toISOString()
+  })
+})
+
 // API Routes
 app.use('/api/validate', validateRouter)
 app.use('/api/orders', authMiddleware, ordersRouter)
