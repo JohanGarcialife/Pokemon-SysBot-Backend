@@ -68,6 +68,40 @@ app.get('/health/discord', (req: express.Request, res: express.Response) => {
   })
 })
 
+// Debug endpoint: Preview the exact Showdown text that would be sent to the bot
+app.get('/debug/showdown', (req: express.Request, res: express.Response) => {
+  const { buildShowdownText } = require('./lib/showdownBuilder')
+  const species = (req.query.species as string) || 'charmander'
+  const game = (req.query.game as string) || 'legends-za'
+  const ball = (req.query.ball as string) || 'Poké Ball'
+  const level = Number(req.query.level) || 50
+  
+  const mockPayload = {
+    species,
+    level,
+    nature: 'Hardy',
+    ability: '',
+    shiny: false,
+    alpha: false,
+    gender: 'genderless',
+    heldItem: 'None',
+    teraType: 'Normal',
+    pokeball: ball,
+    origin: 'Wild Encounter',
+    moves: [],
+    ivs: { hp: 31, attack: 31, defense: 31, spAttack: 31, spDefense: 31, speed: 31 },
+    evs: { hp: 0, attack: 0, defense: 0, spAttack: 0, spDefense: 0, speed: 0 }
+  }
+  
+  const text = buildShowdownText(mockPayload, game)
+  res.json({
+    game,
+    species,
+    showdownText: text,
+    commandPreview: `!trade 12345678\n${text}`
+  })
+})
+
 // API Routes
 app.use('/api/validate', validateRouter)
 app.use('/api/orders', authMiddleware, ordersRouter)

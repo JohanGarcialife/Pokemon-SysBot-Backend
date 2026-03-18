@@ -35,6 +35,10 @@ export const orderWorker = new Worker(
           // Convert payload to Showdown text directly using our builder
           const showdownText = buildShowdownText(pokemon, gameVersion)
 
+          console.log(`[OrderWorker] === SHOWDOWN TEXT for ${pokemon.species} ===`)
+          console.log(showdownText)
+          console.log(`[OrderWorker] ================================================================`)
+
           // Send to Discord via the selfbot bridge, passing the trade code
           const success = await discordBridge.sendTradeCommand(showdownText, botTradeCode)
           
