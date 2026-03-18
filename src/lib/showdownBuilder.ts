@@ -104,9 +104,12 @@ export function buildShowdownText(pokemon: PokemonBuildPayload, gameVersion?: st
   }
 
   // ── Ball ─────────────────────────────────────────────────────────────
-  // ALM supports "Ball: <name>" to set exactly which Poké Ball is used.
-  // This is mandatory for legality — without it, ALM may assign an illegal ball.
-  if (pokemon.pokeball) {
+  // ALM supports "Ball: <name>" to set which Poké Ball is used.
+  // For Legends ZA we SKIP this field entirely:
+  //   - The special char 'é' in "Poké Ball" can cause encoding issues on Windows SysBot
+  //   - ALM auto-selects the most legal ball for ZA encounters
+  // For Scarlet/Violet we include the ball normally.
+  if (!isLegendsZA && pokemon.pokeball) {
     lines.push(`Ball: ${normalizeBallName(pokemon.pokeball)}`)
   }
 
