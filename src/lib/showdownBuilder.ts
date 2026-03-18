@@ -3,32 +3,71 @@ import { PokemonBuildPayload } from './order-types'
 /**
  * Converts a PokemonBuildPayload to a Showdown-format string.
  * This format is understood by PKHeX's AutoLegalityMod (ALM)
- * and will produce a valid, legal .pk9 file.
+ * and will produce a valid, legal .pk9 / .pk1-9 file.
  *
- * Example output:
- * Pikachu @ Light Ball
- * Ability: Static
- * Level: 50
- * Shiny: Yes
- * EVs: 252 Atk / 4 Def / 252 Spe
- * Jolly Nature
- * IVs: 31 HP
- * - Volt Tackle
- * - Iron Tail
- * - Quick Attack
- * - Thunder
+ * Supported ALM extensions beyond base Showdown format:
+ *   Ball: Master Ball
+ *   Alpha: Yes            (Legends ZA)
+ *   Shiny: Yes
+ *   Language: spa
+ *
+ * Example for Legends ZA:
+ *   Charmander
+ *   Ability: Blaze
+ *   Level: 50
+ *   Ball: Poké Ball
+ *   Jolly Nature
+ *   - Ember
+ *   - Growl
+ *   - Scratch
+ *   - Smokescreen
  */
+
 const LEGENDS_ZA_GAME = 'legends-za'
 
-// Origins that indicate a gift with Shiny Lock (PokéBall locked, fixed level, etc.)
-const GIFT_ORIGINS = ['In-Game Gift', 'Starter', 'Event']
+// Ball name mappings (Showdown → ALM-accepted names)
+const BALL_NAME_MAP: Record<string, string> = {
+  'poke ball':     'Poké Ball',
+  'pokeball':      'Poké Ball',
+  'poke':          'Poké Ball',
+  'great ball':    'Great Ball',
+  'ultra ball':    'Ultra Ball',
+  'master ball':   'Master Ball',
+  'safari ball':   'Safari Ball',
+  'net ball':      'Net Ball',
+  'dive ball':     'Dive Ball',
+  'nest ball':     'Nest Ball',
+  'repeat ball':   'Repeat Ball',
+  'timer ball':    'Timer Ball',
+  'luxury ball':   'Luxury Ball',
+  'premier ball':  'Premier Ball',
+  'dusk ball':     'Dusk Ball',
+  'heal ball':     'Heal Ball',
+  'quick ball':    'Quick Ball',
+  'cherish ball':  'Cherish Ball',
+  'fast ball':     'Fast Ball',
+  'level ball':    'Level Ball',
+  'lure ball':     'Lure Ball',
+  'heavy ball':    'Heavy Ball',
+  'love ball':     'Love Ball',
+  'friend ball':   'Friend Ball',
+  'moon ball':     'Moon Ball',
+  'sport ball':    'Sport Ball',
+  'park ball':     'Park Ball',
+  'dream ball':    'Dream Ball',
+  'beast ball':    'Beast Ball',
+}
+
+function normalizeBallName(ball: string): string {
+  const lower = ball.toLowerCase().trim()
+  return BALL_NAME_MAP[lower] ?? capitalize(ball)
+}
 
 export function buildShowdownText(pokemon: PokemonBuildPayload, gameVersion?: string): string {
   const lines: string[] = []
   const isLegendsZA = gameVersion === LEGENDS_ZA_GAME
 
-  // ── Header: Species @ HeldItem ──────────────────────────────────────
-  // Skip held item if it's null, undefined, empty, or the literal string "None"
+  // ── Header: Species @ HeldItem ───────────────────────────────────────
   const hasHeldItem = pokemon.heldItem &&
     pokemon.heldItem.trim() !== '' &&
     pokemon.heldItem.toLowerCase() !== 'none'
@@ -64,6 +103,13 @@ export function buildShowdownText(pokemon: PokemonBuildPayload, gameVersion?: st
     lines.push(`Tera Type: ${capitalize(pokemon.teraType)}`)
   }
 
+  // ── Ball ─────────────────────────────────────────────────────────────
+  // ALM supports "Ball: <name>" to set exactly which Poké Ball is used.
+  // This is mandatory for legality — without it, ALM may assign an illegal ball.
+  if (pokemon.pokeball) {
+    lines.push(`Ball: ${normalizeBallName(pokemon.pokeball)}`)
+  }
+
   // ── EVs (not applicable for Legends ZA) ──────────────────────────────
   if (!isLegendsZA) {
     const evParts = buildStatLine(pokemon.evs)
@@ -75,15 +121,16 @@ export function buildShowdownText(pokemon: PokemonBuildPayload, gameVersion?: st
     lines.push(`${capitalize(pokemon.nature)} Nature`)
   }
 
-  // ── IVs (only show non-31 values) ───────────────────────────────────
+  // ── IVs (only show non-31 values) ──────────────────────────────────
   const ivParts = buildStatLine(pokemon.ivs, 31)
   if (ivParts) lines.push(`IVs: ${ivParts}`)
 
-  // ── Moves ─────────────────────────────────────────────────────────────
-  if (!isLegendsZA) {
-    for (const move of pokemon.moves.filter(Boolean)) {
-      lines.push(`- ${capitalize(move)}`)
-    }
+  // ── Moves ────────────────────────────────────────────────────────────
+  // Include moves for ALL games — ALM uses them to resolve the legality check.
+  // For Legends ZA, ALM will auto-pick legal moves if the supplied ones are invalid.
+  const validMoves = pokemon.moves.filter(Boolean)
+  for (const move of validMoves) {
+    lines.push(`- ${capitalize(move)}`)
   }
 
   return lines.join('\n')
